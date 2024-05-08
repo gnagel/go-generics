@@ -1,4 +1,4 @@
-package values
+package slices
 
 import (
 	"github.com/go-generics-playground/generics/values"

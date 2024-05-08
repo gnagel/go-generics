@@ -1,32 +1,18 @@
-package values
+package protogenerics
 
 import (
-	"github.com/go-generics-playground/generics/values"
+	"github.com/go-generics-playground/generics/slices"
 	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
-	"slices"
 )
 import "google.golang.org/protobuf/reflect/protoreflect"
 
-var exampleMsg structpb.Struct
-var exampleDescriptor = exampleMsg.ProtoReflect()
-
 // AllocSlice, DeallocSlice, and ResetSlice all implement the generic interface
-var _ AllocSlice[proto.Message] = ProtoSliceAlloc(exampleDescriptor)
-var _ DeallocSlice[proto.Message] = ProtoSliceDealloc(exampleDescriptor)
-var _ ResetSlice[proto.Message] = ProtoSliceReset(exampleDescriptor)
-
-// ProtoAlloc implements the Alloc[T] interface for a protobuf descriptor
-var ProtoAlloc = values.ProtoAlloc
-
-// ProtoDealloc implements the Dealloc[T] interface for a protobuf descriptor
-var ProtoDealloc = values.ProtoDealloc
-
-// ProtoReset implements the Reset[T] interface for a protobuf descriptor
-var ProtoReset = values.ProtoReset
+var _ slices.AllocSlice[proto.Message] = ProtoSliceAlloc(exampleDescriptor)
+var _ slices.DeallocSlice[proto.Message] = ProtoSliceDealloc(exampleDescriptor)
+var _ slices.ResetSlice[proto.Message] = ProtoSliceReset(exampleDescriptor)
 
 // ProtoSliceAlloc implements the AllocSlice[T] interface for a protobuf descriptor
-func ProtoSliceAlloc(descriptor protoreflect.Message) AllocSlice[proto.Message] {
+func ProtoSliceAlloc(descriptor protoreflect.Message) slices.AllocSlice[proto.Message] {
 	alloc := ProtoAlloc(descriptor)
 	return func(defaultLen, defaultCap int) []proto.Message {
 		output := make([]proto.Message, defaultLen, defaultCap)
@@ -38,7 +24,7 @@ func ProtoSliceAlloc(descriptor protoreflect.Message) AllocSlice[proto.Message] 
 }
 
 // ProtoSliceDealloc implements the DeallocSlice[T] interface for a protobuf descriptor
-func ProtoSliceDealloc(descriptor protoreflect.Message) DeallocSlice[proto.Message] {
+func ProtoSliceDealloc(descriptor protoreflect.Message) slices.DeallocSlice[proto.Message] {
 	dealloc := ProtoDealloc(descriptor)
 
 	return func(input []proto.Message) []proto.Message {
@@ -46,12 +32,12 @@ func ProtoSliceDealloc(descriptor protoreflect.Message) DeallocSlice[proto.Messa
 			dealloc(value)
 			input[index] = nil
 		}
-		return slices.Clip(input)
+		return input[:0:0]
 	}
 }
 
 // ProtoSliceReset implements the ResetSlice[T] interface for a protobuf descriptor
-func ProtoSliceReset(descriptor protoreflect.Message) ResetSlice[proto.Message] {
+func ProtoSliceReset(descriptor protoreflect.Message) slices.ResetSlice[proto.Message] {
 	reset := ProtoReset(descriptor)
 	return func(input []proto.Message) []proto.Message {
 		for index, value := range input {
