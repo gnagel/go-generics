@@ -55,4 +55,17 @@ func TestDefaultReset(t *testing.T) {
 }
 
 func TestDefaultDealloc(t *testing.T) {
+	t.Run("int ptr", func(t *testing.T) {
+		var reset Reset[**int] = func(i **int) **int {
+			*i = nil
+			return i
+		}
+		var value int = 123
+		var ptr *int = &value
+		var prtptr **int = &ptr
+
+		output := reset(prtptr)
+		require.NotNil(t, output)
+		require.Nil(t, *output)
+	})
 }
