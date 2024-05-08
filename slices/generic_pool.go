@@ -1,6 +1,7 @@
 package slices
 
 import (
+	"log"
 	"sync"
 	"sync/atomic"
 )
@@ -12,6 +13,15 @@ type SlicePool[T any] struct {
 }
 
 func NewSlicePool[T any](alloc AllocSlice[T], reset ResetSlice[T], defaultLen, defaultCap int) *SlicePool[T] {
+	if nil == alloc {
+		log.Panic("alloc is required for ValuePool")
+	}
+	if nil == reset {
+		log.Panic("reset is required for ValuePool")
+	}
+	if defaultLen > defaultCap {
+		log.Panicf("len(%d) must be <= cap(%d)", defaultLen, defaultCap)
+	}
 	output := &SlicePool[T]{reset: reset}
 	output.pool.New = sliceAlloc(&output.cap, alloc, defaultLen, defaultCap)
 	return output

@@ -1,6 +1,7 @@
 package values
 
 import (
+	"log"
 	"sync"
 	"sync/atomic"
 )
@@ -13,10 +14,10 @@ type ValuePool[T any] struct {
 
 func NewValuePool[T any](alloc Alloc[T], reset Reset[T]) *ValuePool[T] {
 	if nil == alloc {
-		alloc = DefaultAlloc[T](nil)
+		log.Panic("alloc is required for ValuePool")
 	}
 	if nil == reset {
-		reset = DefaultReset[T]
+		log.Panic("reset is required for ValuePool")
 	}
 
 	output := &ValuePool[T]{reset: reset}
