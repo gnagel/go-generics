@@ -1,6 +1,9 @@
-package slices
+package pools
 
 import (
+	"github.com/go-generics-playground/generics/functions"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"log"
 	"sync"
 	"sync/atomic"
@@ -9,10 +12,10 @@ import (
 type SlicePool[T any] struct {
 	pool     sync.Pool
 	len, cap atomic.Int64
-	reset    ResetSlice[T]
+	reset    functions.ResetSlice[T]
 }
 
-func NewSlicePool[T any](alloc AllocSlice[T], reset ResetSlice[T], defaultLen, defaultCap int) *SlicePool[T] {
+func NewSlicePool[T any](alloc functions.AllocSlice[T], reset functions.ResetSlice[T], defaultLen, defaultCap int) *SlicePool[T] {
 	if nil == alloc {
 		log.Panic("alloc is required for ValuePool")
 	}
@@ -23,7 +26,10 @@ func NewSlicePool[T any](alloc AllocSlice[T], reset ResetSlice[T], defaultLen, d
 		log.Panicf("len(%d) must be <= cap(%d)", defaultLen, defaultCap)
 	}
 	output := &SlicePool[T]{reset: reset}
-	output.pool.New = sliceAlloc(&output.cap, alloc, defaultLen, defaultCap)
+	output.pool.New = func() any {
+		go func() { output.cap.Add(1) }()
+		return alloc(defaultLen, defaultCap)
+	}
 	return output
 }
 
@@ -46,9 +52,15 @@ func (p *SlicePool[T]) Cap() int64 {
 	return p.cap.Load()
 }
 
-func sliceAlloc[T any](cap *atomic.Int64, alloc AllocSlice[T], defaultLen, defaultCap int) func() any {
-	return func() any {
-		go func() { cap.Add(1) }()
-		return alloc(defaultLen, defaultCap)
+type ProtoSlicePool struct {
+	*SlicePool[proto.Message]
+}
+
+func NewProtoSlicePool(descriptor protoreflect.Message, defaultLen, defaultCap int) *ProtoSlicePool {
+	alloc := functions.AllocProtoSlice(descriptor)
+	reset := functions.ResetProtoSlice(descriptor)
+
+	return &ProtoSlicePool{
+		SlicePool: NewSlicePool[proto.Message](alloc, reset, defaultLen, defaultCap),
 	}
 }

@@ -1,6 +1,7 @@
-package values
+package pools
 
 import (
+	"github.com/go-generics-playground/generics/functions"
 	"github.com/stretchr/testify/require"
 	"runtime"
 	"sync"
@@ -10,8 +11,8 @@ import (
 
 func TestValuePool(t *testing.T) {
 	now := time.Now().UTC()
-	var alloc Alloc[time.Time] = DefaultAlloc[time.Time](now)
-	var reset Reset[time.Time] = DefaultReset[time.Time]
+	var alloc = functions.DefaultAlloc[time.Time](now)
+	var reset functions.Reset[time.Time] = functions.DefaultReset[time.Time]
 
 	pool := NewValuePool[time.Time](alloc, reset)
 	require.Zero(t, pool.Cap())
@@ -38,11 +39,11 @@ func TestValuePool(t *testing.T) {
 
 func TestValuePool_race(t *testing.T) {
 	now := time.Now().UTC()
-	var alloc Alloc[*time.Time] = func() *time.Time {
+	var alloc functions.Alloc[*time.Time] = func() *time.Time {
 		t := now
 		return &t
 	}
-	var reset Reset[*time.Time] = func(t *time.Time) *time.Time {
+	var reset functions.Reset[*time.Time] = func(t *time.Time) *time.Time {
 		*t = now
 		return t
 	}

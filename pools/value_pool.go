@@ -1,6 +1,9 @@
-package values
+package pools
 
 import (
+	"github.com/go-generics-playground/generics/functions"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/reflect/protoreflect"
 	"log"
 	"sync"
 	"sync/atomic"
@@ -9,10 +12,10 @@ import (
 type ValuePool[T any] struct {
 	pool     sync.Pool
 	len, cap atomic.Int64
-	reset    Reset[T]
+	reset    functions.Reset[T]
 }
 
-func NewValuePool[T any](alloc Alloc[T], reset Reset[T]) *ValuePool[T] {
+func NewValuePool[T any](alloc functions.Alloc[T], reset functions.Reset[T]) *ValuePool[T] {
 	if nil == alloc {
 		log.Panic("alloc is required for ValuePool")
 	}
@@ -21,7 +24,10 @@ func NewValuePool[T any](alloc Alloc[T], reset Reset[T]) *ValuePool[T] {
 	}
 
 	output := &ValuePool[T]{reset: reset}
-	output.pool.New = valueAlloc(&output.cap, alloc)
+	output.pool.New = func() any {
+		go func() { output.cap.Add(1) }()
+		return alloc()
+	}
 	return output
 }
 
@@ -44,9 +50,15 @@ func (p *ValuePool[T]) Cap() int64 {
 	return p.cap.Load()
 }
 
-func valueAlloc[T any](cap *atomic.Int64, alloc Alloc[T]) func() any {
-	return func() any {
-		go func() { cap.Add(1) }()
-		return alloc()
+type ProtoPool struct {
+	*ValuePool[proto.Message]
+}
+
+func NewProtoPool(descriptor protoreflect.Message) *ProtoPool {
+	alloc := functions.AllocProto(descriptor)
+	reset := functions.ResetProto(descriptor)
+
+	return &ProtoPool{
+		ValuePool: NewValuePool[proto.Message](alloc, reset),
 	}
 }
