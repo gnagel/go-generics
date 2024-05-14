@@ -1,7 +1,7 @@
 package intern
 
 import (
-	"github.com/bxcodec/faker/v4"
+	"github.com/go-faker/faker/v4"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/exp/rand"
 	"sync"
